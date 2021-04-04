@@ -1,0 +1,47 @@
+#prep a Dockerfile in VS code
+
+$ code .       #create and edit Dockerfile
+
+Dockerfile:
+
+			#use exisiting baseline alpine linux
+			FROM alpine
+
+			#donwload and install a dependency
+			RUN apk add --update redis
+
+			#tell the image what to do when it starts as a container
+			CMD ["redis-server"]
+
+
+#then
+#run command 
+
+$ docker build .
+
+$ docker run CTID   # to run new image
+
+
+#give a tag to image using docker convensions below
+#  yourdocker id / projectname : latest
+   senolisci / redis : version
+
+$ docker build -t senolisci/redis:latest .   # dot is for local folder
+
+# start by tag
+$ docker run senolisci/redis:latest 
+# same thing below
+
+$ docker run senolisci/redis
+
+#make image generattion from container with docker commit
+#in terminal 1
+$ docker run -it alpine sh
+   - apk add --update redis
+# in terminal 2
+
+$ docker ps  #to get CTID
+$ docker commit -c "CMD ['redis-server']"  CTID
+   -this outputs image id (IMID)
+
+$ docker run IMID

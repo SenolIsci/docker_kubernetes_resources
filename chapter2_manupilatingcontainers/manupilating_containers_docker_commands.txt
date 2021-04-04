@@ -1,0 +1,70 @@
+# download/or get from cash the docker image, create and start docker container (CT):
+#run=create+start
+$ docker run hello-world   #runs with default startup command defined in the image
+$docker busybox echo hello
+$ docker run -it busybox sh   #opens with sh terminal
+	-ls
+	-touch mynewfile
+
+#run in background
+$ docker run -d redis
+
+$ docker ps  #to see running containers (shows container id (CTID) start time etc)
+$docker ps -a# to see running and stopped containers
+
+
+
+#permanently delete stopped CTs and all downloaded chashed images related to this CTs.
+$ docker system prune
+
+
+
+#only create
+$ docker create busybox ping google.com
+# start a stopped CT 
+#start silently 
+$ docker start 354674c5354354674c5453dc7a43 674c5453dc7a43  # CTID
+#attach to your terminal
+$ docker start -a 354674c5354354674c5453dc7a43     # CTID
+
+# to attach your teminal to a running container (stsdin stdout std err of the process cretaed in the container):
+$docker attach CTID
+
+#see logs of CT if no terminal output set
+$ docker logs 354674c5354354674c5453dc7a43       # CTID
+#insert command into a running container
+#first start debis server container than connect it to its cli
+#in one terminal screen:
+$ docker run debris
+# docker ps # to get debris server CT's CTID
+#open another terminal window to connect to redis-cli:
+$ docker exec -it CTID redis-cli          #it for terminal attachment
+	- set myvalue 5
+	-get myvalue
+#to stop a container gracefully (by sigint signal):
+$ docker  stop CTID
+#to stop a container immediately  (by sigkill signal):
+$ docker kill CTID
+
+#stop all containers smoothly
+docker stop $(docker ps -a -q)
+
+#kill all containers
+
+$ docker kill $(docker ps -q)
+
+#remove all containers
+$ docker rm $(docker ps -a -q)
+
+remove all docker images
+$ docker rmi $(docker images -q)
+
+
+
+
+
+
+
+
+
+

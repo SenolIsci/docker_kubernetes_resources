@@ -1,0 +1,83 @@
+#create a directory "simpleweb"
+#we will use   node:alpine image from hub.docker.com
+
+
+inside Dockerfile
+
+a new command is used to connect program files to image build process
+
+COPY ./pathtolocalprogramfolder  ./pathtolocalinsidecontainerfilesystem
+
+COPY ./ ./
+
+
+Dockerfile:
+
+		# Specify a base image
+		FROM node:alpine
+		
+		#add work directory
+		WORKDIR /usr/app
+
+		# Install some depenendencies
+		COPY ./package.json ./                #first copy json file needed for npm
+		RUN npm install
+		
+		COPY ./ ./  #then copt others to prevent reinstallig at each build because of npm
+		
+
+		# Default command
+		CMD ["npm", "start"]
+		
+		
+package.json:
+
+	{
+	  "dependencies": {
+		"express": "*"
+	  },
+	  "scripts": {
+		"start": "node index.js"
+	  }
+	}
+			
+
+index.js:
+
+	const express = require('express');
+
+	const app = express();
+
+	app.get('/', (req, res) => {
+	  res.send('Hi there');
+	});
+
+	app.listen(8080, () => {
+	  console.log('Listening on port 8080');
+	});
+			
+			
+			
+			
+#run build command inside "simpleweb" folder
+$ docker  build -t senolisci/simpleweb .
+
+#run with option to open network connection  from outside to inside port of the container
+#this way when we write adress to web browser, it can show simpleweb app ("index.js") 
+
+# docker run  -p localport:container port image_name
+$ docker run -p 8080:8080 senolisci/simpleweb
+
+#then open web browser and type the address:    http://localhost:8080/
+#then you will see the text 	"Hi there"
+
+
+
+# to see where the files created during build. 
+#there you will see index.js pacakage.json  and so on 
+#remember we copied the files to the working folder directory of the container
+$ docker run -p 8080:8080 senolisci/simpleweb sh
+    -ls
+	
+
+			

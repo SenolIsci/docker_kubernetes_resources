@@ -1,0 +1,305 @@
+# insert a react program into container  automatically test and deploy
+#standart steps of nodejs react app development:
+#develop -> test > prod 
+
+in development a develompent server is used , in production evironment, nginx  server is used.
+#nodejs first use development server to write code and test. Then build it for production (make it combine files and optimize code)
+
+PHASE 1 : standard use of nodejs and react app
+PHASE 2: use docker containers. # development and prod containers will be  different.
+
+# install nodejs into your compueter
+#https://nodejs.org/en/download/
+
+#after installation
+$ node -v
+
+
+
+#open terminal, install create-react-app and create a react project named "frontend"
+$ npx create-react-app frontend
+
+		Success! Created frontend at C:\Users\User\Desktop\udemy_docker_kubermetes\chapter6_productiongradeworkflow\frontend
+		Inside that directory, you can run several commands:
+
+		  npm start
+			Starts the development server.
+
+		  npm run build
+			Bundles the app into static files for production.
+
+		  npm test
+			Starts the test runner.
+
+		  npm run eject
+			Removes this tool and copies build dependencies, configuration files
+			and scripts into the app directory. If you do this, you can’t go back!
+
+		We suggest that you begin by typing:
+
+		  cd frontend
+		  npm start
+
+
+#go to project folder
+$ cd frontend
+
+
+$ npm test
+
+		> frontend@0.1.0 test C:\Users\User\Desktop\udemy_docker_kubermetes\chapter6_productiongradeworkflow\frontend
+		> react-scripts test
+		 PASS  src/App.test.js (13.797 s)
+		  √ renders learn react link (176 ms)
+
+		Test Suites: 1 passed, 1 total
+		Tests:       1 passed, 1 total
+		Snapshots:   0 total
+		Time:        18.892 s
+		Ran all test suites related to changed files.
+
+		Watch Usage
+		 › Press a to run all tests.
+		 › Press f to run only failed tests.
+		 › Press q to quit watch mode.
+		 › Press p to filter by a filename regex pattern.
+		 › Press t to filter by a test name regex pattern.
+		 › Press Enter to trigger a test run.
+
+#press q
+
+#now build prod build
+$npm run build
+
+		Compiled successfully.
+
+		File sizes after gzip:
+
+		  41.33 KB  build\static\js\2.75374dc1.chunk.js
+		  1.59 KB   build\static\js\3.b515b1a1.chunk.js
+		  1.16 KB   build\static\js\runtime-main.098d1c34.js
+		  588 B     build\static\js\main.9fa1c34e.chunk.js
+		  574 B     build\static\css\main.9d5b29c0.chunk.css
+
+		The project was built assuming it is hosted at /.
+		You can control this with the homepage field in your package.json.
+
+		The build folder is ready to be deployed.
+		You may serve it with a static server:
+
+		  npm install -g serve
+		  serve -s build
+
+		Find out more about deployment here:
+
+		  https://cra.link/deployment
+
+$ npm start
+
+			Compiled successfully!
+
+			You can now view frontend in the browser.
+
+			  Local:            http://localhost:3000
+			  On Your Network:  http://172.20.240.1:3000
+
+			Note that the development build is not optimized.
+			To create a production build, use npm run build.
+			
+#PHASE 2: with containers. archive the project folder. and create again "frontend" folder.
+
+
+#create Dockerfile.dev for deveopment
+#Dockerfile.dev:
+		FROM node:alpine
+
+		WORKDIR '/app'
+
+		COPY package.json .
+		RUN npm install
+
+		COPY . .
+
+		CMD ["npm", "run", "start"]		
+
+#build with filename
+$ docker build  -t senolisci/frontend -f Dockerfile.dev .  #dont forget dot.
+		-IMID
+
+#start dev server
+$ docker run -it -p 3000:3000 IMID/tag
+
+#open browser at viist http://localhost:3000/
+
+#then edit app.js to include "hi there"
+
+#if wie vant to automatically update server after "code change of react source code" without image rebuild
+#use volume capability in run command and dont use  and delete "COPY . . " command in the Dockerfile.
+#it is volume mount from local directory  to container filesystem 
+#u need to use a terminal which can run PWD. powerhell, windows terminal and so on
+# -v /app/node_modules   is a bookmark that says do not mount from local folder. and also you will notice there is no local folder "node_modules".node_modules is updated during build of image
+
+docker run -it -p 3000:3000 -v /app/node_modules -v ${PWD}:/app -e CHOKIDAR_USEPOLLING=true senolisci/frontend
+#Dockerfile.dev:
+		FROM node:alpine
+
+		WORKDIR '/app'
+
+		COPY package.json .
+		RUN npm install
+
+		CMD ["npm", "run", "start"]		
+app.js:
+		import React from 'react';
+		import logo from './logo.svg';
+		import './App.css';
+
+		function App() {
+		  return (
+			<div className="App">
+			  <header className="App-header">
+				<img src={logo} className="App-logo" alt="logo" />
+				<p>
+				  HI THERE
+				</p>
+				<a
+				  className="App-link"
+				  href="https://reactjs.org"
+				  target="_blank"
+				  rel="noopener noreferrer"
+				>
+				  Learn React
+				</a>
+			  </header>
+			</div>
+		  );
+		}
+
+		export default App;
+		
+#PHASE 3: using docker-compose
+
+#docker-compose.yml:
+		version: '3'
+		services:
+		  web:
+			stdin_open: true
+			environment:
+			  - CHOKIDAR_USEPOLLING=true
+			build:
+			  context: .
+			  dockerfile: Dockerfile.dev
+			ports:
+			  - '3000:3000'
+			volumes:
+			  - /app/node_modules
+			  - .:/app
+
+
+#Dockerfile.dev:
+		FROM node:alpine
+
+		WORKDIR '/app'
+
+		COPY package.json .
+		RUN npm install
+
+		CMD ["npm", "run", "start"]		
+
+$ docker-compose up --build
+
+
+#nw apply tests
+$docker build -t senolisci/webfront -f Dockerfile.dev .
+
+#run test
+$docker run -it senolisci/webfront npm run test
+
+ 
+PHASE 4:
+
+#idea1 is this create web container and by exec command run test. exec creates a new process inside.
+$ $docker build -t senolisci/webfront -f Dockerfile.dev .
+$ docker run -it -p 3000:3000 -v /app/node_modules -v ${PWD}:/app -e CHOKIDAR_USEPOLLING=true senolisci/frontend
+$ docker exec -it eb94cbc9045b npm run test
+#then change app.test.js file and CTRL^C then rerun 
+$ docker exec -it eb94cbc9045b npm run test
+
+#idea2  is this: cretate two container one for web one for test using docker-compose.yml
+
+
+#docker test
+#modify to add multiple tests
+
+App.test.js:
+		import React from 'react';
+		import { render } from '@testing-library/react';
+		import App from './App';
+
+		test('renders learn react link', () => {
+		  const { getByText } = render(<App />);
+		  const linkElement = getByText(/learn react/i);
+		  expect(linkElement).toBeInTheDocument();
+		});
+
+		test('renders learn react link', () => {
+		  const { getByText } = render(<App />);
+		  const linkElement = getByText(/learn react/i);
+		  expect(linkElement).toBeInTheDocument();
+		});
+docker-compose.yml:
+
+		version: '3'
+		services:
+		  web:
+			stdin_open: true
+			environment:
+			  - CHOKIDAR_USEPOLLING=true
+			build:
+			  context: .
+			  dockerfile: Dockerfile.dev
+			ports:
+			  - '3000:3000'
+			volumes:
+			  - /app/node_modules
+			  - .:/app
+		  tests:
+			stdin_open: true
+			build:
+			  context: .
+			  dockerfile: Dockerfile.dev
+			volumes:
+			  - /app/node_modules
+			  - .:/app
+			command: ['npm', 'run', 'test']
+
+
+$ docker-compose up --build
+$ docker ps
+		-id of test container
+$ docker attach CTIDoftestcontainer (primary process of the container)
+
+
+
+PHASE 5: nginx production environment
+# we will use multistage mutiple base images.
+
+#build stage1 using node:alpine image.
+#we only insterested in "build" folder.  from stage 1 to stage 2 only copy "build" folder
+#run stage2 using nginx base image
+
+#Dockerfle:
+		FROM node:alpine
+		WORKDIR '/app'
+		COPY package.json .
+		RUN npm install
+		COPY . .
+		RUN npm run build
+
+		FROM nginx
+		COPY --from=0 /app/build /usr/share/nginx/html
+		
+		
+#docker build .
+
+docker run -p 8080:80 CTID
